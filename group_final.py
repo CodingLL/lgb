@@ -112,6 +112,9 @@ if __name__ == '__main__':
     # filepath = '/home/services/siliang/fakenews/BuzzFeed-Webis_Fake_News_Corpus_2016/buzzfeed_1267.jsonl'
     filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed_1267_nbmodel.jsonl'
     filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed182_gpt.jsonl'
+    filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed182_gpt_main_claim_only_0314.jsonl'
+    filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/politifact_547_gpt_main_claim_only_0314.jsonl'
+    model_name = 'gpt'
     with open(filepath) as f:
         for line in f:
             dic = json.loads(line)
@@ -119,19 +122,22 @@ if __name__ == '__main__':
     print('size of data: {}'.format(len(buzzfeed_data)))
     
     for dic in tqdm(buzzfeed_data):
-        if 'features' in dic['gpt']:
-            features = dic['gpt']['features']
+        if 'features' in dic[model_name]:
+            features = dic[model_name]['features']
             # continue
         else:
-            features = get_features(dic['gpt']['overall_predictions'])
+            features = get_features(dic[model_name]['overall_predictions'])
             # print(features)
         result = requests.post(service_url, json=features)
         # sprint(result.json())
-        dic['gpt']['features'] = features
-        dic['gpt']['final_prediction'] = result.json()
+        dic[model_name]['features'] = features
+        dic[model_name]['final_prediction'] = result.json()
         
         
-    savepath = 'data/buzzfeed182_gpt.jsonl'
+    # savepath = 'data/buzzfeed182_gpt_rerun_0314.jsonl'
+    print(len(buzzfeed_data))
+    savepath = '/home/services/siliang/ml_fakenews/data/politifact_547_gpt_main_claim_only_0315.jsonl'
+    print('savepath: {}'.format(savepath))
     with open(savepath, 'w') as f:
         for dic in buzzfeed_data:
             f.write(json.dumps(dic) + '\n')

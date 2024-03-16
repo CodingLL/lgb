@@ -164,44 +164,6 @@ if __name__ == '__main__':
     print(df)
     feature_importance_df = pd.DataFrame()
     fold_feats = pd.DataFrame()
-    
-    # param = {
-    #     'objective': 'binary', # 'num_leaves': 62, # 'max_depth': 12,
-    #     "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
-    #     'metric': 'custom',
-    #     # 'metric': 'auc',
-    #     'scale_pos_weight': 1, "verbosity": -1,
-    # }
-    param2 = {
-        'objective': 'binary', 'boosting_type': 'gbdt',# 'num_leaves': 62, # 'max_depth': 12,
-        "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
-        'metric': 'custom',
-        # 'metric': 'auc',
-        'scale_pos_weight': 1, "verbosity": -1,
-        'colsample_bytree': 0.78, 'colsample_bynode': 0.78,
-        'min_child_samples': 10,
-        'min_child_weight': 0.001,
-        # 'min_child_samples': 20,  # 20
-        # 'min_child_weight': 1, # 1
-    }
-    
-    # paramrf = {
-    #     'objective': 'binary', 'boosting_type': 'rf',# 'num_leaves': 62, # 'max_depth': 12,
-    #     "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
-    #     'metric': 'custom',
-    #     # 'metric': 'auc',
-    #     'scale_pos_weight': 1, "verbosity": -1,
-    #     'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
-    #     'bagging_fraction': 0.8, 'bagging_freq': 10
-    # }
-    
-    # param_dist = {
-    #     'num_leaves': [50, 60, 70, 80, 90, 100],
-    #     'max_depth': [6, 7, 8, 9, 10, 11, 12],
-    #     'learning_rate': [0.04, 0.05, 0.06],
-    #     'n_estimators': sp_randint(50, 500)
-    # }
-    
     for fold in range(folds_num):
         # if fold != 2:
         #     continue
@@ -249,12 +211,48 @@ if __name__ == '__main__':
                                  reference=train_data
                                  )
 
+        # param = {
+        #     'objective': 'binary', # 'num_leaves': 62, # 'max_depth': 12,
+        #     "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
+        #     'metric': 'custom',
+        #     # 'metric': 'auc',
+        #     'scale_pos_weight': 1, "verbosity": -1,
+        # }
+        param2 = {
+            'objective': 'binary', 'boosting_type': 'gbdt',# 'num_leaves': 62, # 'max_depth': 12,
+            "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
+            'metric': 'custom',
+            # 'metric': 'auc',
+            'scale_pos_weight': 1, "verbosity": -1,
+            'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
+            'min_child_samples': 10,
+            'min_child_weight': 0.001,
+            # 'min_child_samples': 20,  # 20
+            # 'min_child_weight': 1, # 1
+        }
         
-        lgbcls = LGBMClassifier(**param2)
+        paramrf = {
+            'objective': 'binary', 'boosting_type': 'rf',# 'num_leaves': 62, # 'max_depth': 12,
+            "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
+            'metric': 'custom',
+            # 'metric': 'auc',
+            'scale_pos_weight': 1, "verbosity": -1,
+            'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
+            'bagging_fraction': 0.8, 'bagging_freq': 10
+        }
+        
+        # param_dist = {
+        #     'num_leaves': [50, 60, 70, 80, 90, 100],
+        #     'max_depth': [6, 7, 8, 9, 10, 11, 12],
+        #     'learning_rate': [0.04, 0.05, 0.06],
+        #     'n_estimators': sp_randint(50, 500)
+        # }
+        
+        lgbcls = LGBMClassifier(**param2, random_state=1992)
         # random_search = RandomizedSearchCV(estimator=lgbcls, param_distributions=param_dist, n_iter=10, cv=5)
-        # param2['scale_pos_weight'] = 0.8
-        # lgbcls2 = LGBMClassifier(**param2, random_state=1992+1)
-        # lgbrf = LGBMClassifier(**paramrf, random_state=1992+2)
+        param2['scale_pos_weight'] = 0.8
+        lgbcls2 = LGBMClassifier(**param2, random_state=1992+1)
+        lgbrf = LGBMClassifier(**paramrf, random_state=1992+2)
         # catcls = CatBoostClassifier(iterations=1500,
         #                             verbose=2,
         #                             random_seed=1992,
@@ -276,21 +274,21 @@ if __name__ == '__main__':
         # voting_clf.fit(train_feat[train_columns], train_feat["label"])
         lgbcls.fit(train_feat[train_columns], train_feat["label"], 
             eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
+            eval_metric=f1_eval_metric, 
+            early_stopping_rounds=100,
+            verbose=10)
+        
+        lgbcls2.fit(train_feat[train_columns], train_feat["label"], 
+            eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
             eval_metric=f1_eval_metric2, 
             early_stopping_rounds=100,
             verbose=10)
         
-        # lgbcls2.fit(train_feat[train_columns], train_feat["label"], 
-        #     eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
-        #     eval_metric=f1_eval_metric2, 
-        #     early_stopping_rounds=100,
-        #     verbose=10)
-        
-        # lgbrf.fit(train_feat[train_columns], train_feat["label"], 
-        #     eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
-        #     eval_metric=f1_eval_metric2, 
-        #     early_stopping_rounds=100,
-        #     verbose=10)
+        lgbrf.fit(train_feat[train_columns], train_feat["label"], 
+            eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
+            eval_metric=f1_eval_metric2, 
+            early_stopping_rounds=100,
+            verbose=10)
         
         # catcls.fit(train_feat[train_columns], train_feat["label"], 
         #            eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
@@ -308,16 +306,16 @@ if __name__ == '__main__':
         # bst.save_model(str(args.outpath+"/"+('model_%s'%fold)))
         # pred = bst.predict(valid_feat[train_columns])
         pred1 = lgbcls.predict(valid_feat[train_columns])
-        # pred2 = lgbcls2.predict(valid_feat[train_columns])
-        # pred3 = lgbrf.predict(valid_feat[train_columns])
+        pred2 = lgbcls2.predict(valid_feat[train_columns])
+        pred3 = lgbrf.predict(valid_feat[train_columns])
         # pred3 = catcls.predict(valid_feat[train_columns])
         # pred = 0.0 * pred1 + 1 * pred2
         # pred = 0.5 * pred1 + 0.5 * pred2
-        # pred = 0.5 * pred1 + 0.3 * pred2 + 0.2 * pred3
+        pred = 0.5 * pred1 + 0.3 * pred2 + 0.2 * pred3
         # pred = 0.54 * pred1 + 0.28 * pred2 + 0.18 * pred3
-        pred = pred1
 
         fold_importance_df = pd.DataFrame()
+        
         fold_importance_df["Feature"] = train_columns
        #  fold_importance_df["importance"] = bst.feature_importance(importance_type='gain')
         fold_importance_df["fold"] = fold + 1

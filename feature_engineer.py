@@ -352,7 +352,7 @@ def get_mv_sum(domain_list):
     return support_or_negate_stat['support'], support_or_negate_stat['baseless'], support_or_negate_stat['negate']
 
 
-def feature_engineer(df):
+def feature_engineer(args, df):
     
     df["label"] = df["label"].apply(lambda x: 1 if x else 0)
     df["claim_estimations"] = df["claim_estimations"].apply(lambda x: str([d for d in literal_eval(x) if d not in ["newbreakapp.com"]]))
@@ -373,7 +373,7 @@ def feature_engineer(df):
     df[["full_code_score_mean", "full_code_score_mean_sum"]] = df["claim_estimations"].apply(lambda x: pd.Series(get_full_code_score(literal_eval(x))))
     df[["support_mean", "baseless_mean", "negate_mean"]] = df["claim_estimations"].apply(lambda x: pd.Series(get_mv_mean(literal_eval(x))))
     df[["support_num", "baseless_num", "negate_num"]] = df["claim_estimations"].apply(lambda x: pd.Series(get_mv_sum(literal_eval(x))))
-    
-    # df["gpt_rationale_score"] = df["gpt_rating"].apply(lambda x: x['rating'])
+    if "gpt_rating" in list(df.columns) and args.gpt_rationale:
+        df["gpt_rationale_score"] = df["gpt_rating"].apply(lambda x: x['rating'])
 
-    return df 
+    return df

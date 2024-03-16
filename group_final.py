@@ -114,7 +114,8 @@ if __name__ == '__main__':
     filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed182_gpt.jsonl'
     filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed182_gpt_main_claim_only_0314.jsonl'
     filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/politifact_547_gpt_main_claim_only_0314.jsonl'
-    model_name = 'gpt'
+    filepath = '/home/services/siliang/NB-LLM/data_preparation/gpt_fake_news_detection/res/buzzfeed182_nbmodel_main_claim_only_v2_0315.jsonl'
+    model_name = 'nbmodel' # gpt / nbmodel
     with open(filepath) as f:
         for line in f:
             dic = json.loads(line)
@@ -136,7 +137,7 @@ if __name__ == '__main__':
         
     # savepath = 'data/buzzfeed182_gpt_rerun_0314.jsonl'
     print(len(buzzfeed_data))
-    savepath = '/home/services/siliang/ml_fakenews/data/politifact_547_gpt_main_claim_only_0315.jsonl'
+    savepath = '/home/services/siliang/ml_fakenews/data/buzzfeed182_nbmodel_main_claim_only_v2_0315.jsonl'
     print('savepath: {}'.format(savepath))
     with open(savepath, 'w') as f:
         for dic in buzzfeed_data:

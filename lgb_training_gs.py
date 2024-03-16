@@ -16,8 +16,9 @@ import warnings
 warnings.filterwarnings('ignore')
 from utils import setup_seed
 from feature_engineer import *
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from scipy.stats import randint as sp_randint
+from scipy.stats import uniform as sp_uniform
 from sklearn.linear_model import SGDClassifier
 
 def lgb_score(y_hat, data, raw_data):
@@ -90,6 +91,9 @@ def f1_eval_metric2(y_true, y_pred):
     return 'custom_f1_score', f1, True
 
 class Catf1(object):
+    def __init__(self, f1_type='neg'):
+        self.f1_type = f1_type
+        
     def get_final_error(self, error, weight):
         return error
 
@@ -102,7 +106,10 @@ class Catf1(object):
         assert len(target) == len(approxes[0])
         preds = np.array(approxes[0])
         target = np.array(target)
-        return f1_eval_metric(target, preds)[1], 0
+        if self.f1_type == 'neg':
+            return f1_eval_metric(target, preds)[1], 0
+        elif self.f1_type == 'pos':
+            return f1_eval_metric2(target, preds)[1], 0
 
 
 if __name__ == '__main__':
@@ -155,6 +162,7 @@ if __name__ == '__main__':
                      # "full_code_score_mean", "full_code_score_mean_sum", 
                      "support_mean", "baseless_mean", "negate_mean", 
                      # "support_num", "baseless_num", "negate_num", 
+                     # "gpt_rationale_score",
                      ]
     if args.gpt_rationale:
         train_columns.append("gpt_rationale_score")
@@ -164,7 +172,6 @@ if __name__ == '__main__':
     print(df)
     feature_importance_df = pd.DataFrame()
     fold_feats = pd.DataFrame()
-    
     # param = {
     #     'objective': 'binary', # 'num_leaves': 62, # 'max_depth': 12,
     #     "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
@@ -174,25 +181,31 @@ if __name__ == '__main__':
     # }
     param2 = {
         'objective': 'binary', 'boosting_type': 'gbdt',# 'num_leaves': 62, # 'max_depth': 12,
-        "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
+        "learning_rate": 0.05, "num_iterations": 1000, # "n_estimators": 2500, 
         'metric': 'custom',
         # 'metric': 'auc',
         'scale_pos_weight': 1, "verbosity": -1,
-        'colsample_bytree': 0.78, 'colsample_bynode': 0.78,
-        'min_child_samples': 10,
-        'min_child_weight': 0.001,
-        # 'min_child_samples': 20,  # 20
-        # 'min_child_weight': 1, # 1
+        'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
     }
     
-    # paramrf = {
-    #     'objective': 'binary', 'boosting_type': 'rf',# 'num_leaves': 62, # 'max_depth': 12,
-    #     "learning_rate": 0.05, "num_iterations": 1500, # "n_estimators": 2500, 
+    
+    paramrf = {
+        'objective': 'binary', 'boosting_type': 'rf',# 'num_leaves': 62, # 'max_depth': 12,
+        "learning_rate": 0.05, "num_iterations": 1000, # "n_estimators": 2500, 
+        'metric': 'custom',
+        # 'metric': 'auc',
+        'scale_pos_weight': 1, "verbosity": -1,
+        'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
+        'bagging_fraction': 0.8, 'bagging_freq': 10
+    }
+    
+    # paramdart = {
+    #     'objective': 'binary', 'boosting_type': 'dart',# 'num_leaves': 62, # 'max_depth': 12,
+    #     "learning_rate": 0.05, "num_iterations": 1000, # "n_estimators": 2500, 
     #     'metric': 'custom',
     #     # 'metric': 'auc',
     #     'scale_pos_weight': 1, "verbosity": -1,
     #     'colsample_bytree': 0.78, 'colsample_bynode': 0.8,
-    #     'bagging_fraction': 0.8, 'bagging_freq': 10
     # }
     
     # param_dist = {
@@ -201,6 +214,32 @@ if __name__ == '__main__':
     #     'learning_rate': [0.04, 0.05, 0.06],
     #     'n_estimators': sp_randint(50, 500)
     # }
+    param_test ={# 'num_leaves': [6, 8, 10, 12],
+            'min_child_samples': [5, 10, 20],  # 20
+            'min_child_weight': [1e-3, 1e-1, 1, 1e1, 1e3], # 1
+            'colsample_bytree': [0.78],
+            'colsample_bynode': [0.78],
+        #  'reg_alpha': [0, 1e-1, 1, 2, 5, 7, 10, 50, 100],
+        #  'reg_lambda': [0, 1e-1, 1, 5, 10, 20, 50, 100],
+            "learning_rate": [0.05],
+            }
+    
+    lgbcls = LGBMClassifier(**param2, random_state=1992)    
+    # politifact: {'min_child_samples': 20, 'min_child_weight': 1}
+    # buzzfeed: {'min_child_samples': 10, 'min_child_weight': 0.001}
+    # gs = RandomizedSearchCV(estimator=lgbcls, param_distributions=param_test, n_iter=10, cv=5)
+    gs = GridSearchCV(estimator=lgbcls, param_grid=param_test, cv=3)
+    
+    # fold 0 的数据来调参
+    fold = 0
+    train_feat = df.loc[df["fold"]!=fold]
+    valid_feat = df.loc[df["fold"]==fold]
+    gs.fit(train_feat[train_columns], train_feat["label"], 
+            eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
+            eval_metric=f1_eval_metric, 
+            early_stopping_rounds=100,
+            verbose=10)
+    print('Best score reached: {} with params: {} '.format(gs.best_score_, gs.best_params_))
     
     for fold in range(folds_num):
         # if fold != 2:
@@ -249,73 +288,16 @@ if __name__ == '__main__':
                                  reference=train_data
                                  )
 
-        
-        lgbcls = LGBMClassifier(**param2)
-        # random_search = RandomizedSearchCV(estimator=lgbcls, param_distributions=param_dist, n_iter=10, cv=5)
-        # param2['scale_pos_weight'] = 0.8
-        # lgbcls2 = LGBMClassifier(**param2, random_state=1992+1)
-        # lgbrf = LGBMClassifier(**paramrf, random_state=1992+2)
-        # catcls = CatBoostClassifier(iterations=1500,
-        #                             verbose=2,
-        #                             random_seed=1992,
-        #                             learning_rate=0.05,
-        #                             subsample=1,
-        #                             scale_pos_weight=1,
-        #                             cat_features=cat_features,
-        #                             eval_metric=Catf1(), 
-        #                             early_stopping_rounds=100,
-        #                         )
-        # weights = [0.0, 1.0]
-        # voting_clf = VotingClassifier(estimators=[# ('lgb', lgbcls),
-        #                                           ('cat', cat),
-        #                                           ],
-        #                               weights=weights, 
-        #                               voting='soft',
-        #                               n_jobs=-1)
-        
-        # voting_clf.fit(train_feat[train_columns], train_feat["label"])
-        lgbcls.fit(train_feat[train_columns], train_feat["label"], 
+        clf_final = lgb.LGBMClassifier(**lgbcls.get_params())
+        clf_final.fit(train_feat[train_columns], train_feat["label"], 
             eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
             eval_metric=f1_eval_metric2, 
             early_stopping_rounds=100,
             verbose=10)
         
-        # lgbcls2.fit(train_feat[train_columns], train_feat["label"], 
-        #     eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
-        #     eval_metric=f1_eval_metric2, 
-        #     early_stopping_rounds=100,
-        #     verbose=10)
         
-        # lgbrf.fit(train_feat[train_columns], train_feat["label"], 
-        #     eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
-        #     eval_metric=f1_eval_metric2, 
-        #     early_stopping_rounds=100,
-        #     verbose=10)
+        pred = clf_final.predict(valid_feat[train_columns])
         
-        # catcls.fit(train_feat[train_columns], train_feat["label"], 
-        #            eval_set=[(valid_feat[train_columns], valid_feat["label"])], 
-        #            early_stopping_rounds=100,
-        #            verbose=10)
-        # random_search.fit(train_feat[train_columnå], train_feat["label"])
-        # catcls = voting_clf
-        # bst = catcls
-        # bst = random_search
-        
-        # bst = lgb.train(param, train_data, valid_sets=[valid_data],
-        #                 early_stopping_rounds=100, verbose_eval=10,
-        #                 feval=lambda p, d: [lgb_score(p, d, valid_feat),],)
-        
-        # bst.save_model(str(args.outpath+"/"+('model_%s'%fold)))
-        # pred = bst.predict(valid_feat[train_columns])
-        pred1 = lgbcls.predict(valid_feat[train_columns])
-        # pred2 = lgbcls2.predict(valid_feat[train_columns])
-        # pred3 = lgbrf.predict(valid_feat[train_columns])
-        # pred3 = catcls.predict(valid_feat[train_columns])
-        # pred = 0.0 * pred1 + 1 * pred2
-        # pred = 0.5 * pred1 + 0.5 * pred2
-        # pred = 0.5 * pred1 + 0.3 * pred2 + 0.2 * pred3
-        # pred = 0.54 * pred1 + 0.28 * pred2 + 0.18 * pred3
-        pred = pred1
 
         fold_importance_df = pd.DataFrame()
         fold_importance_df["Feature"] = train_columns
@@ -325,6 +307,7 @@ if __name__ == '__main__':
 
         valid_feat['preds'] = pred
         valid_feat["fold"] = fold
+                                                                                                                
         if 'gpt' in list(valid_feat.columns):                                                                                               
             fold_feats = pd.concat([fold_feats, valid_feat[["id", "url", "title", "text", "gpt", "claim_estimations", "support_mean", \
                                                             "baseless_mean", "negate_mean", "mv",  "preds", "fold", "label"]]], axis=0)
@@ -373,3 +356,5 @@ if __name__ == '__main__':
         f.write('neg_precision: {:.4f}, neg_recall: {:.4f}, neg_f1: {:.4f}'.format(r_precision, r_recall, r_f1) + '\n')
         f.write('accuracy: {:.4f}, fake_acc: {:.4f}, real_acc: {:.4f}'.format(accuracy, fake_acc, real_acc) + '\n')
     # print(valid_feat.columns)
+    
+    

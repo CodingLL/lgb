@@ -59,7 +59,7 @@ class GPTAsync:
                  check_model='gpt-4-0125-preview'
     ):
         self.check_model = check_model
-        self.prompt = 'Context: {context}\nSentenct: {sentence}\nIs the sentence supported by the context above?\nAnswer Yes or No:'
+        # self.prompt = 'Context: {context}\nSentenct: {sentence}\nIs the sentence supported by the context above?\nAnswer Yes or No:'
         self.total_data = total_data
         self.savepath = savepath
 
@@ -121,10 +121,10 @@ class GPTAsync:
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filepath", type=str, default='politifact_0315_fold.csv')
+    parser.add_argument("--filepath", type=str, default='data/politifact_547_gpt_main_claim_only_0315.csv')
     parser.add_argument("--model", type=str, choices=["gpt-4-0125-preview","gpt-3.5-turbo-1106"],help="whcih OpenAI model to chose",default="gpt-4-0125-preview")
-    parser.add_argument("--savepath", type=str, default="politifact_0315_async.jsonl")
-    parser.add_argument("--parallel", type=int, default=88)
+    parser.add_argument("--savepath", type=str, default="politifact_547_gpt_main_claim_only_0315_rationale.jsonl")
+    parser.add_argument("--parallel", type=int, default=20)
 
     args = parser.parse_args()
     done_ids = []
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         with open(args.savepath, "r") as f:
             for line in f:
                 dic = json.loads(line)
-                done_ids.append(dic['docid'])
+                done_ids.append(dic['id'])
 
     print('filepath: {}'.format(args.filepath))
     total_data = []
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     df = df[df["fold"]==4]
     for index, row in df.iterrows():
         dic = row.to_dict()
-        if dic['docid'] in done_ids:
+        if dic['id'] in done_ids:
             continue
 
         total_data.append(dic)

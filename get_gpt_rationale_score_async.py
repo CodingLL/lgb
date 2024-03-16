@@ -41,7 +41,7 @@ def get_prompt(claim, rationales):
     prompt += 'Claim: %s\n' % claim
     prompt += "We search many web pages to verify it. Below are the rationales of these web pages.\n"
     for i, rationale in enumerate(rationales):
-        prompt += "Rationale {}: {}\n".format(i, rationale)
+        prompt += "{}. Domain: {} Rationale: {}\n".format(i+1, rationale["domain"], rationale["rationale"])
     # prompt += "Rationales: \n"
     # prompt += "\n".join(rationales)
     prompt += "\nPlease judge the claim according to the above rationales, provide a rating and an explanation.\n"
@@ -75,16 +75,23 @@ class GPTAsync:
         await asyncio.gather(*tasks)
 
     async def predict(self, i, sample):
-        gpt = sample["gpt"]
+        if 'gpt' in sample:
+            gpt = sample["gpt"]
+        else:
+            gpt = sample["nbmodel"]
         gpt = literal_eval(gpt)
         claim = gpt["claim"]
-        gpt = gpt["overall_predictions"]
-        rationales = [g["rationale"] for g in gpt]
-        input_cur = get_prompt(claim, rationales)
+        # print(gpt.keys())
+        features = gpt['features']['claim_estimations']
+        rationales = [g["rationale"] for g in features]
+        
+        input_cur = get_prompt(claim, features)
         if rationales:
             messages = [{"role": "user", "content": input_cur}]
             output_cur = await get_gpt_result_async(messages, model = self.check_model)
             output_cur = json.loads(output_cur)
+            # if not isinstance(output_cur['rating'], int) or not isinstance(output_cur['rating'], float):
+            #     output_cur['rating'] = 5
         else:
             output_cur = {"rating": 5, "explanation": 'no rationale'}
                 
@@ -107,12 +114,12 @@ class GPTAsync:
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filepath", type=str, default='data/buzzfeed182_gpt_v2.csv')
+    parser.add_argument("--filepath", type=str, default='data/buzzfeed182_nbmodel_main_claim_only_v2_0315.csv')
     parser.add_argument("--model", type=str, 
                         choices=["gpt-4-0125-preview","gpt-3.5-turbo-1106"],
-                        help="whcih OpenAI model to chose",
+                        help="which OpenAI model to choose",
                         default="gpt-4-0125-preview")
-    parser.add_argument("--savepath", type=str, default="data/buzzfeed182_gpt_v2_rationale.jsonl")
+    parser.add_argument("--savepath", type=str, default="data/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315.jsonl")
     parser.add_argument("--parallel", type=int, default=20)
 
     args = parser.parse_args()
@@ -137,6 +144,16 @@ if __name__ == '__main__':
                    savepath=args.savepath, 
                    check_model=args.model)
     r = asyncio.run(GPT.run_pred_async(parallel=args.parallel))
+    
+    # save_data = []
+    # with open(args.savepath) as f:
+    #     for line in f:
+    #         dic = json.loads(line)
+    #         save_data.append(dic)
+    # save_df = pd.DataFrame(save_data)
+    # save_df.to_csv(args.savepath[:-6]+'.csv')
+    
+    # print('csv saved in {}'.format(args.savepath[:-6]+'.csv'))
     
 # --------------------------------------------------------
 '''

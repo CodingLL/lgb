@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedKFold, KFold
 # prefix = "../data/"
 prefix = "data/"
 # fname = "buzzfeed_1267_2model.jsonl"
-fname = "buzzfeed182_nbmodel_main_claim_only_v2_0315.jsonl"
+fname = "politifact_547_nbmodel_main_claim_only_v2_0315.jsonl"
 
 with open(prefix + fname, "r") as fr:
     lines = fr.readlines()
@@ -68,4 +68,4 @@ for idx, (train_index, valid_index) in enumerate(skf.split(df.index, df[stratify
 print(df)
 print(df["fold"].value_counts())
 print(df["label"].value_counts())
-df.to_csv("data/buzzfeed182_nbmodel_main_claim_only_v2_0315.csv", index=False)
+df.to_csv("data/politifact_547_nbmodel_main_claim_only_v2_0315.csv", index=False)

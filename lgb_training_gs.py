@@ -5,6 +5,7 @@ from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 import random
 import numpy as np
@@ -340,6 +341,9 @@ if __name__ == '__main__':
     precision = precision_score(labels, preds)
     recall = recall_score(labels, preds)
     f1 = f1_score(labels, preds)
+    micro_precision, micro_recall, micro_f1, _ = precision_recall_fscore_support(labels, preds, average='micro')
+    
+    print('micro_precision: {:.4f}, micro_recall: {:.4f}, micro_f1: {:.4f}'.format(micro_precision, micro_recall, micro_f1))
     print('pos_precision: {:.4f}, pos_recall: {:.4f}, pos_f1: {:.4f}'.format(precision, recall, f1))
     
     r_labels = [int(not i) for i in labels]

@@ -114,13 +114,13 @@ class GPTAsync:
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filepath", type=str, default='data/buzzfeed182_nbmodel_main_claim_only_v2_0315.csv')
+    parser.add_argument("--filepath", type=str, default='data/politifact_547_nbmodel_main_claim_only_v2_0315.csv')
     parser.add_argument("--model", type=str, 
                         choices=["gpt-4-0125-preview","gpt-3.5-turbo-1106"],
                         help="which OpenAI model to choose",
                         default="gpt-4-0125-preview")
-    parser.add_argument("--savepath", type=str, default="data/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315.jsonl")
-    parser.add_argument("--parallel", type=int, default=20)
+    parser.add_argument("--savepath", type=str, default="data/politifact_547_nbmodel_main_claim_only_rationale_v2_0315.jsonl")
+    parser.add_argument("--parallel", type=int, default=40)
 
     args = parser.parse_args()
     done_ids = []

@@ -5,6 +5,7 @@ from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 import random
 import numpy as np
@@ -178,9 +179,8 @@ if __name__ == '__main__':
         'metric': 'custom',
         # 'metric': 'auc',
         'scale_pos_weight': 1, "verbosity": -1,
-        'colsample_bytree': 0.78, 'colsample_bynode': 0.78,
-        'min_child_samples': 10,
-        'min_child_weight': 0.001,
+        'colsample_bytree': 0.78, 'colsample_bynode': 0.78, 
+        'min_child_samples': 10, 'min_child_weight': 0.001,
         # 'min_child_samples': 20,  # 20
         # 'min_child_weight': 1, # 1
     }
@@ -320,6 +320,9 @@ if __name__ == '__main__':
         fold_importance_df = pd.DataFrame()
         fold_importance_df["Feature"] = train_columns
        #  fold_importance_df["importance"] = bst.feature_importance(importance_type='gain')
+        fold_importance_df["importance"] = lgbcls.feature_importances_
+        feat_imp = pd.Series(lgbcls.feature_importances_, index=train_columns)
+        print(feat_imp)
         fold_importance_df["fold"] = fold + 1
         # feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
 
@@ -357,6 +360,9 @@ if __name__ == '__main__':
     precision = precision_score(labels, preds)
     recall = recall_score(labels, preds)
     f1 = f1_score(labels, preds)
+    micro_precision, micro_recall, micro_f1, _ = precision_recall_fscore_support(labels, preds, average='micro')
+    
+    print('micro_precision: {:.4f}, micro_recall: {:.4f}, micro_f1: {:.4f}'.format(micro_precision, micro_recall, micro_f1))
     print('pos_precision: {:.4f}, pos_recall: {:.4f}, pos_f1: {:.4f}'.format(precision, recall, f1))
     
     r_labels = [int(not i) for i in labels]

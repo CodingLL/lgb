@@ -1,5 +1,11 @@
 # political
 # 0316 nbmodel
+
+python lgb_training_3ensemble.py \
+--filepath data/politifact_547_nbmodel_main_claim_only_rationale_v2_0315.jsonl \
+--outpath exp/politifact_547_nbmodel_main_claim_only_rationale_v2_0315_5fold \
+--gpt_rationale 1
+
 python lgb_training_3ensemble.py \
 --filepath data/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315.jsonl \
 --outpath exp/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315_5fold \
@@ -9,6 +15,7 @@ python lgb_training.py \
 --filepath data/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315.jsonl \
 --outpath exp/buzzfeed182_nbmodel_main_claim_only_rationale_v2_0315_5fold \
 --gpt_rationale 1
+
 # -------------------
 # python lgb_training.py \
 # --filepath data/politifact_547_gpt_main_claim_only_rationale_0315.jsonl \
@@ -48,14 +55,14 @@ python lgb_training_gs.py \
 python lgb_training_3ensemble.py \
 --filepath data/politifact_547_gpt_main_claim_only_rationale_0315.jsonl \
 --outpath exp/politifact_547_gpt_main_claim_only_rationale_0315 \
---gpt_rationale 0
+--gpt_rationale 1
 
 # 5 fold best pos_f1 0.7914 neg_f1 0.7797
 # 0.54 * pred1 + 0.28 * pred2 + 0.18 * pred3
 python lgb_training_3ensemble.py \
 --filepath data/buzzfeed182_gpt_v2_rationale_0315.jsonl \
 --outpath exp/buzzfeed182_gpt_v2_0315_5fold \
---gpt_rationale 0
+--gpt_rationale 1
 # '''
 
 # '''
